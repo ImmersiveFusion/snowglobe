@@ -52,7 +52,7 @@ snowglobe -endpoint your-otlp-endpoint:443
 
 **Installed from an old path?** Releases up to v0.7.7 were published as `github.com/ImmersiveFusion/if-opentelemetry-tracegen`, and releases up to v0.8.0 as `github.com/ImmersiveFusion/opentelemetry-tracegen`. Pinned installs of those versions keep working, but `@latest` on either old path stops resolving from the next release onward, so update your command to the path above. The installed binary is now named `snowglobe` rather than `tracegen`.
 
-> **See it in 3D** - Send traces to [DeepCube](https://deepcube.ai) (`snowglobe -endpoint otlp.deepcube.ai:443 -headers "api-key=YOUR_KEY"`, [how to get a key](https://docs.deepcube.ai/Getting-Started/Api-Key/)) to explore them as a 3D force-directed graph, drill into conventional trace waterfalls for detailed analysis, and get AI-assisted insights from [Tessa](https://deepcube.ai). For a ready-made example without any setup, try [Shoebox](https://github.com/ImmersiveFusion/shoebox) at [chaos.deepcube.ai](https://chaos.deepcube.ai) - paste a diagram of a system, break a call in it, and fire one request through.
+> **See it in 3D** - Send traces to [DeepCube](https://deepcube.ai) (`snowglobe -endpoint otlp.deepcube.ai:443 -headers "api-key=YOUR_KEY"`, [how to get a key](https://docs.deepcube.ai/Getting-Started/Api-Key/)) to explore them as a 3D force-directed graph, drill into conventional trace waterfalls for detailed analysis, and get AI-assisted insights from [Tessa](https://deepcube.ai). For a ready-made example without any setup, try [Shoebox](https://github.com/ImmersiveFusion/shoebox) at [shoebox.deepcube.ai](https://shoebox.deepcube.ai) - paste a diagram of a system, break a call in it, and fire one request through.
 
 ## Live demo grids: see it running
 
@@ -414,7 +414,7 @@ The AI agentic traces are also compatible with LLM-specialized observability too
 Part of a small family of single-binary, zero-infra OTel tools, all Apache-2.0 and all usable without any Immersive Fusion account:
 
 - **[sos-beacon](https://github.com/ImmersiveFusion/sos-beacon)** - The **organic** counterpart to this tool's synthetic output. A real workload doing a real job (surfacing people asking for help in public forums, for a human to answer), OTel-instrumented, so it emits genuine production telemetry as a byproduct. Where Snowglobe invents a system, sos-beacon *is* one.
-- **[Shoebox](https://github.com/ImmersiveFusion/shoebox)** - The world you build, where Snowglobe is the world pre-made. Paste a Mermaid diagram of a system, break something in it, fire one request, and read what comes out. A snowglobe is sealed; in a shoebox you can open it up. [See both in 3D](https://chaos.deepcube.ai).
+- **[Shoebox](https://github.com/ImmersiveFusion/shoebox)** - The world you build, where Snowglobe is the world pre-made. Paste a Mermaid diagram of a system, break something in it, fire one request, and read what comes out. A snowglobe is sealed; in a shoebox you can open it up. [See both in 3D](https://shoebox.deepcube.ai).
 
 ## Building From Source
 
