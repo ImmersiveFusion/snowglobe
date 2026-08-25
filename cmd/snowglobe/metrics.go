@@ -182,6 +182,11 @@ func newMeterProvider(ctx context.Context, key, serviceName, instanceID, hostNam
 // newServiceMetrics creates every instrument against a meter. Split out from
 // newMeterProvider so tests can drive it with a manual reader instead of an OTLP
 // exporter, and assert on what the derivation actually produces.
+// connectionPoolName is the value for the Required db.client.connection.pool.name
+// dimension. Each simulated service has exactly one pool and its series are already
+// scoped by the service.name resource attribute, so a constant costs no cardinality.
+const connectionPoolName = "default"
+
 func newServiceMetrics(meter metric.Meter) *serviceMetrics {
 	var err error
 	sm := &serviceMetrics{queueDepth: map[string]*atomic.Int64{}}
@@ -261,13 +266,16 @@ func registerObservables(meter metric.Meter, sm *serviceMetrics) {
 		fatal("failed to create cpu gauge", "err", err)
 	}
 
-	mem, err := meter.Int64ObservableGauge(
+	// UpDownCounter, not Gauge: the registry defines system.memory.usage as
+	// instrument: updowncounter, which is a different point kind on the wire.
+	// Reusing the reserved name with a gauge contract is the defect this fixes.
+	mem, err := meter.Int64ObservableUpDownCounter(
 		"system.memory.usage",
 		metric.WithUnit("By"),
 		metric.WithDescription("Simulated resident memory."),
 	)
 	if err != nil {
-		fatal("failed to create memory gauge", "err", err)
+		fatal("failed to create memory usage counter", "err", err)
 	}
 
 	pool, err := meter.Int64ObservableUpDownCounter(
@@ -295,7 +303,8 @@ func registerObservables(meter metric.Meter, sm *serviceMetrics) {
 		if util > 0.98 {
 			util = 0.98
 		}
-		o.ObserveFloat64(cpu, util)
+		o.ObserveFloat64(cpu, util, metric.WithAttributes(
+			attribute.String("cpu.mode", "user")))
 
 		// Memory drifts with load and leaks back down, staying inside a band so
 		// the series looks alive without wandering off.
@@ -307,16 +316,19 @@ func registerObservables(meter metric.Meter, sm *serviceMetrics) {
 		case next > 900<<20:
 			sm.memoryBytes.Store(900 << 20)
 		}
-		o.ObserveInt64(mem, sm.memoryBytes.Load())
+		o.ObserveInt64(mem, sm.memoryBytes.Load(), metric.WithAttributes(
+			attribute.String("system.memory.state", "used")))
 
 		used := sm.inFlightDB.Load()
 		if used > 20 {
 			used = 20
 		}
 		o.ObserveInt64(pool, used, metric.WithAttributes(
-			attribute.String("db.client.connection.state", "used")))
+			attribute.String("db.client.connection.state", "used"),
+			attribute.String("db.client.connection.pool.name", connectionPoolName)))
 		o.ObserveInt64(pool, 20-used, metric.WithAttributes(
-			attribute.String("db.client.connection.state", "idle")))
+			attribute.String("db.client.connection.state", "idle"),
+			attribute.String("db.client.connection.pool.name", connectionPoolName)))
 
 		sm.queueMu.Lock()
 		for dest, depth := range sm.queueDepth {
@@ -359,7 +371,8 @@ func (p metricSpanProcessor) OnStart(_ context.Context, s sdktrace.ReadWriteSpan
 	}
 	if s.SpanKind() == trace.SpanKindServer {
 		sm.activeRequests.Add(context.Background(), 1, metric.WithAttributes(
-			semconv.HTTPRequestMethodKey.String(spanMethod(s.Attributes()))))
+			semconv.HTTPRequestMethodKey.String(spanMethod(s.Attributes())),
+			semconv.URLSchemeKey.String("https")))
 	}
 }
 
@@ -379,7 +392,8 @@ func (p metricSpanProcessor) OnEnd(s sdktrace.ReadOnlySpan) {
 
 	if s.SpanKind() == trace.SpanKindServer {
 		sm.activeRequests.Add(context.Background(), -1, metric.WithAttributes(
-			semconv.HTTPRequestMethodKey.String(spanMethod(attrs))))
+			semconv.HTTPRequestMethodKey.String(spanMethod(attrs)),
+			semconv.URLSchemeKey.String("https")))
 		recordServerRequest(sm, s, attrs)
 	}
 
@@ -407,7 +421,7 @@ func recordServerRequest(sm *serviceMetrics, s sdktrace.ReadOnlySpan, attrs []at
 		semconv.URLSchemeKey.String("https"),
 		semconv.HTTPRouteKey.String(route),
 	}
-	if code := attrInt(attrs, "http.status_code"); code != 0 {
+	if code := attrInt(attrs, "http.response.status_code"); code != 0 {
 		set = append(set, semconv.HTTPResponseStatusCodeKey.Int(code))
 	}
 	if s.Status().Code == codes.Error {
@@ -421,7 +435,7 @@ func recordServerRequest(sm *serviceMetrics, s sdktrace.ReadOnlySpan, attrs []at
 
 // trackDatabase keeps the simulated pool occupancy tied to real db span volume.
 func trackDatabase(sm *serviceMetrics, attrs []attribute.KeyValue) {
-	if attrValue(attrs, "db.system") == "" {
+	if attrValue(attrs, "db.system.name") == "" {
 		return
 	}
 	sm.inFlightDB.Add(1)
@@ -436,14 +450,14 @@ func trackDatabase(sm *serviceMetrics, attrs []attribute.KeyValue) {
 // what makes -no-consumers show up as an unbounded backlog: the publish spans
 // keep arriving and the receive spans stop.
 func trackMessaging(sm *serviceMetrics, s sdktrace.ReadOnlySpan, attrs []attribute.KeyValue) {
-	dest := attrValue(attrs, "messaging.destination")
+	dest := attrValue(attrs, "messaging.destination.name")
 	if dest == "" {
 		return
 	}
 	switch {
-	case attrValue(attrs, "messaging.operation") == "publish", s.SpanKind() == trace.SpanKindProducer:
+	case attrValue(attrs, "messaging.operation.type") == "send", s.SpanKind() == trace.SpanKindProducer:
 		sm.queueFor(dest).Add(1)
-	case attrValue(attrs, "messaging.operation") == "receive", s.SpanKind() == trace.SpanKindConsumer:
+	case attrValue(attrs, "messaging.operation.type") == "process", s.SpanKind() == trace.SpanKindConsumer:
 		if d := sm.queueFor(dest); d.Load() > 0 {
 			d.Add(-1)
 		}
@@ -466,7 +480,7 @@ func trackGenAI(sm *serviceMetrics, s sdktrace.ReadOnlySpan, attrs []attribute.K
 
 	base := []attribute.KeyValue{
 		attribute.String("gen_ai.operation.name", operation),
-		attribute.String("gen_ai.system", attrValue(attrs, "gen_ai.system")),
+		attribute.String("gen_ai.provider.name", attrValue(attrs, "gen_ai.provider.name")),
 		attribute.String("gen_ai.request.model", attrValue(attrs, "gen_ai.request.model")),
 	}
 
@@ -496,7 +510,7 @@ var knownMethods = map[string]bool{
 }
 
 func spanMethod(attrs []attribute.KeyValue) string {
-	m := attrValue(attrs, "http.method")
+	m := attrValue(attrs, "http.request.method")
 	if m == "" {
 		return "_OTHER"
 	}

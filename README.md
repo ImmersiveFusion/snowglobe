@@ -185,7 +185,7 @@ Metrics aggregate in process and flush on an interval, so unlike traces their vo
 | `http.server.request.duration` | Histogram (s) | RED metrics per route, method and status. Semconv names, seconds, spec bucket boundaries |
 | `http.server.active_requests` | UpDownCounter | In-flight requests, rising and falling with real scenario concurrency |
 | `system.cpu.utilization` | Gauge | Driven by each service's actual span volume, not a random walk |
-| `system.memory.usage` | Gauge | Resident memory, drifting with load |
+| `system.memory.usage` | UpDownCounter | Resident memory, drifting with load. Carries `system.memory.state` |
 | `db.client.connection.count` | UpDownCounter | Pool occupancy split `used`/`idle`, tracking real database spans |
 | `tracegen.messaging.queue.depth` | Gauge | Published minus consumed, per destination |
 | `gen_ai.client.token.usage` | Histogram | Input and output tokens by model, system and operation |
@@ -217,7 +217,7 @@ All AI scenarios emit spans following [OTel GenAI Semantic Conventions](https://
 
 **Attributes on every LLM span:**
 
-- `gen_ai.system` - LLM provider (e.g., `openai`)
+- `gen_ai.provider.name` - LLM provider (e.g., `openai`)
 - `gen_ai.request.model` / `gen_ai.response.model` - model requested and used
 - `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` - token consumption
 - `gen_ai.response.finish_reasons` - completion reason (`stop`, `tool_calls`, `length`, `content_filter`)

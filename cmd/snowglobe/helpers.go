@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"strings"
 	"time"
 
@@ -211,11 +212,21 @@ func randomHex(n int) string {
 // ─── GenAI Model Registry ────────────────────────────────────────────────────
 // Current models across providers, randomized per span for realistic variety.
 
+// urlHost pulls the host out of an absolute URL for the Required server.address
+// dimension on HTTP client spans. Kept deliberately small: these endpoints are
+// literals in this file, not user input.
+func urlHost(raw string) string {
+	if u, err := url.Parse(raw); err == nil && u.Host != "" {
+		return u.Hostname()
+	}
+	return raw
+}
+
 type modelInfo struct {
 	name     string // model identifier
-	system   string // gen_ai.system value
+	system   string // gen_ai.provider.name value
 	endpoint string // API endpoint URL
-	peer     string // peer.service value
+	peer     string // service.peer.name value
 }
 
 // Chat/completion models: mix of providers and tiers
@@ -251,7 +262,8 @@ func randomEmbeddingModel() modelInfo { return embeddingModels[rand.Intn(len(emb
 
 // ─── GenAI Helper Functions ───────────────────────────────────────────────────
 // These produce spans matching Microsoft Semantic Kernel / Agent Framework OTel
-// output and OTel GenAI Semantic Conventions v1.38.0.
+// output and the OTel GenAI Semantic Conventions as of v1.39.0 (gen_ai.provider.name,
+// renamed from gen_ai.system in v1.37.0).
 
 // chatSpan creates a "chat {model}" span on llm-gateway with standard gen_ai attributes.
 func chatSpan(ctx context.Context, m modelInfo, inputTokens, outputTokens int, finishReasons ...string) (context.Context, trace.Span) {
@@ -262,17 +274,19 @@ func chatSpan(ctx context.Context, m modelInfo, inputTokens, outputTokens int, f
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("gen_ai.operation.name", "chat"),
-			attribute.String("gen_ai.system", m.system),
+			attribute.String("gen_ai.provider.name", m.system),
 			attribute.String("gen_ai.request.model", m.name),
 			attribute.String("gen_ai.response.model", m.name),
 			attribute.Int("gen_ai.usage.input_tokens", inputTokens),
 			attribute.Int("gen_ai.usage.output_tokens", outputTokens),
 			attribute.StringSlice("gen_ai.response.finish_reasons", finishReasons),
 			attribute.String("gen_ai.response.id", "chatcmpl-"+randomHex(24)),
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", m.endpoint),
-			attribute.String("peer.service", m.peer),
-			attribute.Int("http.status_code", 200),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", m.endpoint),
+			attribute.String("server.address", urlHost(m.endpoint)),
+			attribute.Int("server.port", 443),
+			attribute.String("service.peer.name", m.peer),
+			attribute.Int("http.response.status_code", 200),
 		),
 	)
 	return ctx, span
@@ -280,21 +294,23 @@ func chatSpan(ctx context.Context, m modelInfo, inputTokens, outputTokens int, f
 
 // embeddingSpan creates an "embedding {model}" span for text-to-vector operations.
 func embeddingSpan(ctx context.Context, m modelInfo, inputTokens, dimensions int) (context.Context, trace.Span) {
-	ctx, span := tracer("llm-gateway").Start(ctx, "embedding "+m.name,
+	ctx, span := tracer("llm-gateway").Start(ctx, "embeddings "+m.name,
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("gen_ai.operation.name", "embedding"),
-			attribute.String("gen_ai.system", m.system),
+			attribute.String("gen_ai.operation.name", "embeddings"),
+			attribute.String("gen_ai.provider.name", m.system),
 			attribute.String("gen_ai.request.model", m.name),
 			attribute.String("gen_ai.response.model", m.name),
 			attribute.Int("gen_ai.usage.input_tokens", inputTokens),
 			attribute.Int("gen_ai.embedding.dimension", dimensions),
 			attribute.StringSlice("gen_ai.request.encoding_formats", []string{"float"}),
 			attribute.String("gen_ai.response.id", "embd-"+randomHex(24)),
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", m.endpoint),
-			attribute.String("peer.service", m.peer),
-			attribute.Int("http.status_code", 200),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", m.endpoint),
+			attribute.String("server.address", urlHost(m.endpoint)),
+			attribute.Int("server.port", 443),
+			attribute.String("service.peer.name", m.peer),
+			attribute.Int("http.response.status_code", 200),
 		),
 	)
 	return ctx, span
@@ -307,7 +323,7 @@ func agentSpan(ctx context.Context, agentName, agentID, description, sessionID s
 		trace.WithSpanKind(trace.SpanKindInternal),
 		trace.WithAttributes(
 			attribute.String("gen_ai.operation.name", "invoke_agent"),
-			attribute.String("gen_ai.system", m.system),
+			attribute.String("gen_ai.provider.name", m.system),
 			attribute.String("gen_ai.agent.id", agentID),
 			attribute.String("gen_ai.agent.name", agentName),
 			attribute.String("gen_ai.agent.description", description),
