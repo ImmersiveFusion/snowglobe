@@ -16,7 +16,7 @@ spans and decremented by consumer spans. That last one means `-no-consumers` pro
 unbounded backlog rather than a simulated one, and it costs less code than a random walk would have.
 
 **GenAI metrics need no scenario changes either.** The AI scenarios already stamp
-`gen_ai.operation.name`, `gen_ai.system`, `gen_ai.request.model` and token counts on their spans, so
+`gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model` and token counts on their spans, so
 the same span processor derives the metrics. The net result is that all four layers are implemented
 with **zero edits to the ~3,000 lines of scenario code**.
 
@@ -94,7 +94,7 @@ execution.
 | Metric | Instrument | Unit | Notes |
 |---|---|---|---|
 | `system.cpu.utilization` | Gauge | `1` | Per pod, correlated with that pod's scenario activity |
-| `system.memory.usage` | Gauge | `By` | |
+| `system.memory.usage` | UpDownCounter | `By` | `system.memory.state`. The registry defines this as an updowncounter, not a gauge |
 | `http.server.active_requests` | UpDownCounter | `{request}` | Semconv; rises and falls with in-flight scenarios |
 | `db.client.connection.count` | UpDownCounter | `{connection}` | Semconv, with `db.client.connection.state` = `used`/`idle` |
 | `tracegen.messaging.queue.depth` | Gauge | `{message}` | Per `messaging.destination.name` |
@@ -120,7 +120,7 @@ on the trace side.
 
 | Metric | Instrument | Unit | Attributes |
 |---|---|---|---|
-| `gen_ai.client.token.usage` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.system`, `gen_ai.request.model`, `gen_ai.token.type` (`input`/`output`) |
+| `gen_ai.client.token.usage` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.type` (`input`/`output`) |
 | `gen_ai.client.operation.duration` | Histogram | `s` | Same, plus `error.type` where applicable |
 
 Token counts already exist as `gen_ai.usage.input_tokens` / `output_tokens` span attributes, so this is

@@ -21,12 +21,12 @@ func TestSpanMethodBoundsTheLabel(t *testing.T) {
 		attrs []attribute.KeyValue
 		want  string
 	}{
-		{"known verb", []attribute.KeyValue{attribute.String("http.method", "GET")}, "GET"},
-		{"another known verb", []attribute.KeyValue{attribute.String("http.method", "PATCH")}, "PATCH"},
-		{"unknown verb", []attribute.KeyValue{attribute.String("http.method", "FROBNICATE")}, "_OTHER"},
-		{"injection attempt", []attribute.KeyValue{attribute.String("http.method", "' OR 1=1")}, "_OTHER"},
+		{"known verb", []attribute.KeyValue{attribute.String("http.request.method", "GET")}, "GET"},
+		{"another known verb", []attribute.KeyValue{attribute.String("http.request.method", "PATCH")}, "PATCH"},
+		{"unknown verb", []attribute.KeyValue{attribute.String("http.request.method", "FROBNICATE")}, "_OTHER"},
+		{"injection attempt", []attribute.KeyValue{attribute.String("http.request.method", "' OR 1=1")}, "_OTHER"},
 		{"absent", nil, "_OTHER"},
-		{"empty", []attribute.KeyValue{attribute.String("http.method", "")}, "_OTHER"},
+		{"empty", []attribute.KeyValue{attribute.String("http.request.method", "")}, "_OTHER"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestSpanMethodBoundsTheLabel(t *testing.T) {
 func TestSpanMethodIsCaseSensitiveToTheAllowlist(t *testing.T) {
 	// Tracegen emits uppercase verbs. A lowercase one is not silently accepted:
 	// letting case through would double the series for every route.
-	attrs := []attribute.KeyValue{attribute.String("http.method", "get")}
+	attrs := []attribute.KeyValue{attribute.String("http.request.method", "get")}
 	if got := spanMethod(attrs); got != "_OTHER" {
 		t.Fatalf("spanMethod(get) = %q, want _OTHER", got)
 	}
@@ -49,8 +49,8 @@ func TestSpanMethodIsCaseSensitiveToTheAllowlist(t *testing.T) {
 func TestAttrValue(t *testing.T) {
 	attrs := []attribute.KeyValue{
 		attribute.String("http.route", "/users/{id}"),
-		attribute.String("db.system", "postgresql"),
-		attribute.Int("http.status_code", 200),
+		attribute.String("db.system.name", "postgresql"),
+		attribute.Int("http.response.status_code", 200),
 	}
 	if got := attrValue(attrs, "http.route"); got != "/users/{id}" {
 		t.Fatalf("attrValue(http.route) = %q", got)
@@ -61,8 +61,8 @@ func TestAttrValue(t *testing.T) {
 }
 
 func TestAttrInt(t *testing.T) {
-	attrs := []attribute.KeyValue{attribute.Int("http.status_code", 503)}
-	if got := attrInt(attrs, "http.status_code"); got != 503 {
+	attrs := []attribute.KeyValue{attribute.Int("http.response.status_code", 503)}
+	if got := attrInt(attrs, "http.response.status_code"); got != 503 {
 		t.Fatalf("attrInt = %d, want 503", got)
 	}
 	// Absent returns the zero value, which recordServerRequest treats as "no
@@ -193,9 +193,9 @@ func TestServerSpanDerivesRequestDuration(t *testing.T) {
 	_, span := tp.Tracer("t").Start(context.Background(), "POST /api/v2/orders",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
+			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/orders"),
-			attribute.Int("http.status_code", 200),
+			attribute.Int("http.response.status_code", 200),
 			attribute.String("user.id", "usr_000123"), // must NOT reach the metric
 		))
 	span.End()
@@ -258,7 +258,7 @@ func TestSpanWithoutTemplatedRouteIsNotRecorded(t *testing.T) {
 		sdktrace.WithSpanProcessor(metricSpanProcessor{key: "svc-no-route"}))
 	_, span := tp.Tracer("t").Start(context.Background(), "GET /orders/12345",
 		trace.WithSpanKind(trace.SpanKindServer),
-		trace.WithAttributes(attribute.String("http.method", "GET")))
+		trace.WithAttributes(attribute.String("http.request.method", "GET")))
 	span.End()
 
 	var rm metricdata.ResourceMetrics
@@ -281,11 +281,15 @@ func TestMessagingSpansMoveQueueDepth(t *testing.T) {
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(metricSpanProcessor{key: "svc-messaging"}))
 
+	// name is the free-text system verb; type is the registered enum the
+	// derivation classifies on (send/process, not publish/receive).
 	emit := func(op string) {
+		opType := map[string]string{"publish": "send", "receive": "process"}[op]
 		_, s := tp.Tracer("t").Start(context.Background(), "msg",
 			trace.WithAttributes(
-				attribute.String("messaging.destination", "orders.created"),
-				attribute.String("messaging.operation", op)))
+				attribute.String("messaging.destination.name", "orders.created"),
+				attribute.String("messaging.operation.name", op),
+				attribute.String("messaging.operation.type", opType)))
 		s.End()
 	}
 
@@ -318,7 +322,7 @@ func TestGenAISpanDerivesTokenUsage(t *testing.T) {
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("gen_ai.operation.name", "chat"),
-			attribute.String("gen_ai.system", "openai"),
+			attribute.String("gen_ai.provider.name", "openai"),
 			attribute.String("gen_ai.request.model", "gpt-5.4"),
 			attribute.Int("gen_ai.usage.input_tokens", 1200),
 			attribute.Int("gen_ai.usage.output_tokens", 340),

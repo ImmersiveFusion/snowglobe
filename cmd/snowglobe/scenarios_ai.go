@@ -21,9 +21,11 @@ func ragSearchFlow(ctx context.Context) {
 	ctx, ui := tracer("web-frontend").Start(ctx, "SearchProducts",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "GET"),
-			attribute.String("http.url", "/api/v2/search/ai"),
-			attribute.String("browser.page", "/search"),
+			attribute.String("http.request.method", "GET"),
+			attribute.String("url.full", "https://shop.example.com/api/v2/search/ai"),
+			attribute.String("server.address", "shop.example.com"),
+			attribute.Int("server.port", 443),
+			attribute.String("tracegen.browser.page", "/search"),
 			attribute.String("search.query", query),
 		),
 	)
@@ -33,9 +35,9 @@ func ragSearchFlow(ctx context.Context) {
 	ctx, gateway := tracer("api-gateway").Start(ctx, "GET /api/v2/search/ai",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "GET"),
+			attribute.String("http.request.method", "GET"),
 			attribute.String("http.route", "/api/v2/search/ai"),
-			attribute.Int("http.status_code", 200),
+			attribute.Int("http.response.status_code", 200),
 			attribute.String("search.query", query),
 		),
 	)
@@ -83,8 +85,8 @@ func ragSearchFlow(ctx context.Context) {
 		_, esFallback := tracer("search-service").Start(ctx, "Elasticsearch Query (fallback)",
 			trace.WithSpanKind(trace.SpanKindServer),
 			trace.WithAttributes(
-				attribute.String("db.system", "elasticsearch"),
-				attribute.String("db.operation", "search"),
+				attribute.String("db.system.name", "elasticsearch"),
+				attribute.String("db.operation.name", "search"),
 				attribute.Bool("search.fallback", true),
 				attribute.String("search.fallback_reason", "llm_rate_limit"),
 				attribute.Int("search.results_count", rand.Intn(30)),
@@ -99,13 +101,13 @@ func ragSearchFlow(ctx context.Context) {
 
 	// Vector similarity search
 	resultsReturned := 15 + rand.Intn(6)
-	_, vecSearch := tracer("vector-db-service").Start(ctx, "retrieve product-embeddings",
+	_, vecSearch := tracer("vector-db-service").Start(ctx, "retrieval product-embeddings",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("gen_ai.operation.name", "retrieve"),
+			attribute.String("gen_ai.operation.name", "retrieval"),
 			attribute.String("gen_ai.data_source.id", "product-embeddings"),
-			attribute.String("db.system", "qdrant"),
-			attribute.String("db.operation", "search"),
+			attribute.String("db.system.name", "qdrant"),
+			attribute.String("db.operation.name", "search"),
 			attribute.Int("vector_db.top_k", 20),
 			attribute.Int("vector_db.results_returned", resultsReturned),
 			attribute.String("vector_db.similarity_metric", "cosine"),
@@ -140,9 +142,9 @@ func ragSearchFlow(ctx context.Context) {
 	_, cacheSet := tracer("cache-service").Start(ctx, "Redis SET search-cache",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("db.system", "redis"),
-			attribute.String("db.operation", "SET"),
-			attribute.Int("db.redis.ttl_seconds", 300),
+			attribute.String("db.system.name", "redis"),
+			attribute.String("db.operation.name", "SET"),
+			attribute.Int("tracegen.redis.ttl_seconds", 300),
 		),
 	)
 	sleep(1, 3)
@@ -153,7 +155,7 @@ func ragSearchFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			attribute.String("messaging.system", "kafka"),
-			attribute.String("messaging.destination", "analytics.events"),
+			attribute.String("messaging.destination.name", "analytics.events"),
 			attribute.String("analytics.event_type", "semantic_search.complete"),
 			attribute.Int("search.results_count", resultsReturned),
 		),
@@ -167,8 +169,9 @@ func ragSearchFlow(ctx context.Context) {
 			trace.WithSpanKind(trace.SpanKindConsumer),
 			trace.WithAttributes(
 				attribute.String("messaging.system", "kafka"),
-				attribute.String("messaging.operation", "receive"),
-				attribute.String("messaging.destination", "analytics.events"),
+				attribute.String("messaging.operation.name", "receive"),
+				attribute.String("messaging.operation.type", "process"),
+				attribute.String("messaging.destination.name", "analytics.events"),
 				attribute.String("analytics.event_type", "semantic_search.complete"),
 			),
 		)
@@ -188,9 +191,11 @@ func aiChatbotFlow(ctx context.Context) {
 	ctx, ui := tracer("web-frontend").Start(ctx, "SendChatMessage",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", "/api/v2/chat"),
-			attribute.String("browser.page", "/support/chat"),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", "https://shop.example.com/api/v2/chat"),
+			attribute.String("server.address", "shop.example.com"),
+			attribute.Int("server.port", 443),
+			attribute.String("tracegen.browser.page", "/support/chat"),
 			attribute.String("user.session_id", userID),
 		),
 	)
@@ -200,9 +205,9 @@ func aiChatbotFlow(ctx context.Context) {
 	ctx, gateway := tracer("api-gateway").Start(ctx, "POST /api/v2/chat",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
+			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/chat"),
-			attribute.Int("http.status_code", 200),
+			attribute.Int("http.response.status_code", 200),
 		),
 	)
 	defer gateway.End()
@@ -279,8 +284,8 @@ func aiChatbotFlow(ctx context.Context) {
 		_, search := tracer("search-service").Start(toolCtx, "Elasticsearch Query",
 			trace.WithSpanKind(trace.SpanKindServer),
 			trace.WithAttributes(
-				attribute.String("db.system", "elasticsearch"),
-				attribute.String("db.operation", "search"),
+				attribute.String("db.system.name", "elasticsearch"),
+				attribute.String("db.operation.name", "search"),
 				attribute.Int("search.results_count", rand.Intn(20)),
 			),
 		)
@@ -332,10 +337,10 @@ func aiChatbotFlow(ctx context.Context) {
 	_, cacheSet := tracer("cache-service").Start(ctx, "Redis SET conversation:session",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("db.system", "redis"),
-			attribute.String("db.operation", "SET"),
-			attribute.String("db.redis.key", "conversation:"+sessionID),
-			attribute.Int("db.redis.ttl_seconds", 1800),
+			attribute.String("db.system.name", "redis"),
+			attribute.String("db.operation.name", "SET"),
+			attribute.String("tracegen.redis.key", "conversation:"+sessionID),
+			attribute.Int("tracegen.redis.ttl_seconds", 1800),
 		),
 	)
 	sleep(1, 3)
@@ -349,9 +354,11 @@ func contentModerationFlow(ctx context.Context) {
 	ctx, ui := tracer("web-frontend").Start(ctx, "SubmitReview",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", "/api/v2/reviews"),
-			attribute.String("browser.page", "/product/review"),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", "https://shop.example.com/api/v2/reviews"),
+			attribute.String("server.address", "shop.example.com"),
+			attribute.Int("server.port", 443),
+			attribute.String("tracegen.browser.page", "/product/review"),
 		),
 	)
 	defer ui.End()
@@ -360,7 +367,7 @@ func contentModerationFlow(ctx context.Context) {
 	ctx, gateway := tracer("api-gateway").Start(ctx, "POST /api/v2/reviews",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
+			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/reviews"),
 		),
 	)
@@ -462,7 +469,7 @@ func contentModerationFlow(ctx context.Context) {
 		sleep(10, 30)
 		publish.End()
 
-		gateway.SetAttributes(attribute.Int("http.status_code", 201))
+		gateway.SetAttributes(attribute.Int("http.response.status_code", 201))
 
 	case "flag":
 		emitLog(ctx, "content-moderation-service", logapi.SeverityWarn, "Content flagged for human review")
@@ -471,8 +478,9 @@ func contentModerationFlow(ctx context.Context) {
 			trace.WithSpanKind(trace.SpanKindProducer),
 			trace.WithAttributes(
 				attribute.String("messaging.system", "rabbitmq"),
-				attribute.String("messaging.operation", "publish"),
-				attribute.String("messaging.destination", "moderation.review_queue"),
+				attribute.String("messaging.operation.name", "publish"),
+				attribute.String("messaging.operation.type", "send"),
+				attribute.String("messaging.destination.name", "moderation.review_queue"),
 				attribute.String("review.status", "flagged"),
 			),
 		)
@@ -485,8 +493,9 @@ func contentModerationFlow(ctx context.Context) {
 				trace.WithSpanKind(trace.SpanKindConsumer),
 				trace.WithAttributes(
 					attribute.String("messaging.system", "rabbitmq"),
-					attribute.String("messaging.operation", "receive"),
-					attribute.String("messaging.destination", "moderation.review_queue"),
+					attribute.String("messaging.operation.name", "receive"),
+					attribute.String("messaging.operation.type", "process"),
+					attribute.String("messaging.destination.name", "moderation.review_queue"),
 					attribute.String("review.status", "pending_human_review"),
 				),
 			)
@@ -494,7 +503,7 @@ func contentModerationFlow(ctx context.Context) {
 			reviewer.End()
 		}
 
-		gateway.SetAttributes(attribute.Int("http.status_code", 202))
+		gateway.SetAttributes(attribute.Int("http.response.status_code", 202))
 
 	case "block":
 		// Content blocked
@@ -502,7 +511,7 @@ func contentModerationFlow(ctx context.Context) {
 		exc := randomException(moderationExceptions)
 		recordException(ctx, "content-moderation-service", moderation, exc.excType, exc.message, exc.stacktrace)
 
-		gateway.SetAttributes(attribute.Int("http.status_code", 422))
+		gateway.SetAttributes(attribute.Int("http.response.status_code", 422))
 		gateway.SetStatus(codes.Error, "content blocked by moderation")
 	}
 }
@@ -516,9 +525,11 @@ func multiStepAgentFlow(ctx context.Context) {
 	ctx, ui := tracer("web-frontend").Start(ctx, "SubmitAgentTask",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", "/api/v2/agent/task"),
-			attribute.String("browser.page", "/agent/task"),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", "https://shop.example.com/api/v2/agent/task"),
+			attribute.String("server.address", "shop.example.com"),
+			attribute.Int("server.port", 443),
+			attribute.String("tracegen.browser.page", "/agent/task"),
 		),
 	)
 	defer ui.End()
@@ -527,9 +538,9 @@ func multiStepAgentFlow(ctx context.Context) {
 	ctx, gateway := tracer("api-gateway").Start(ctx, "POST /api/v2/agent/task",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
+			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/agent/task"),
-			attribute.Int("http.status_code", 200),
+			attribute.Int("http.response.status_code", 200),
 		),
 	)
 	defer gateway.End()
@@ -606,8 +617,8 @@ func multiStepAgentFlow(ctx context.Context) {
 			_, search := tracer("search-service").Start(toolCtx, "Elasticsearch Query",
 				trace.WithSpanKind(trace.SpanKindServer),
 				trace.WithAttributes(
-					attribute.String("db.system", "elasticsearch"),
-					attribute.String("db.operation", "search"),
+					attribute.String("db.system.name", "elasticsearch"),
+					attribute.String("db.operation.name", "search"),
 					attribute.Int("search.results_count", rand.Intn(30)),
 				),
 			)
@@ -688,9 +699,9 @@ func multiStepAgentFlow(ctx context.Context) {
 	_, cacheSet := tracer("cache-service").Start(ctx, "Redis SET agent:result",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("db.system", "redis"),
-			attribute.String("db.operation", "SET"),
-			attribute.Int("db.redis.ttl_seconds", 600),
+			attribute.String("db.system.name", "redis"),
+			attribute.String("db.operation.name", "SET"),
+			attribute.Int("tracegen.redis.ttl_seconds", 600),
 		),
 	)
 	sleep(1, 3)
@@ -701,7 +712,7 @@ func multiStepAgentFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			attribute.String("messaging.system", "kafka"),
-			attribute.String("messaging.destination", "analytics.events"),
+			attribute.String("messaging.destination.name", "analytics.events"),
 			attribute.String("analytics.event_type", "agent.task_complete"),
 			attribute.Int("agent.total_iterations", iterations),
 			attribute.Int("agent.total_input_tokens", totalInputTokens),
@@ -717,8 +728,9 @@ func multiStepAgentFlow(ctx context.Context) {
 			trace.WithSpanKind(trace.SpanKindConsumer),
 			trace.WithAttributes(
 				attribute.String("messaging.system", "kafka"),
-				attribute.String("messaging.operation", "receive"),
-				attribute.String("messaging.destination", "analytics.events"),
+				attribute.String("messaging.operation.name", "receive"),
+				attribute.String("messaging.operation.type", "process"),
+				attribute.String("messaging.destination.name", "analytics.events"),
 				attribute.String("analytics.event_type", "agent.task_complete"),
 			),
 		)
@@ -737,9 +749,11 @@ func returnRefundFlow(ctx context.Context) {
 	ctx, ui := tracer("web-frontend").Start(ctx, "RequestReturn",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", "/api/v2/returns"),
-			attribute.String("browser.page", "/orders/return"),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("url.full", "https://shop.example.com/api/v2/returns"),
+			attribute.String("server.address", "shop.example.com"),
+			attribute.Int("server.port", 443),
+			attribute.String("tracegen.browser.page", "/orders/return"),
 			attribute.String("order.id", orderID),
 		),
 	)
@@ -749,9 +763,9 @@ func returnRefundFlow(ctx context.Context) {
 	ctx, gateway := tracer("api-gateway").Start(ctx, "POST /api/v2/returns",
 		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
+			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/returns"),
-			attribute.Int("http.status_code", 200),
+			attribute.Int("http.response.status_code", 200),
 		),
 	)
 	defer gateway.End()
@@ -782,9 +796,9 @@ func returnRefundFlow(ctx context.Context) {
 	_, dbLookup := tracer("order-service").Start(ctx2, "SELECT orders WHERE id = $1",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("db.system", "postgresql"),
-			attribute.String("db.operation", "SELECT"),
-			attribute.String("db.name", "orders_db"),
+			attribute.String("db.system.name", "postgresql"),
+			attribute.String("db.operation.name", "SELECT"),
+			attribute.String("db.namespace", "orders_db"),
 		),
 	)
 	sleep(5, 15)
@@ -794,9 +808,9 @@ func returnRefundFlow(ctx context.Context) {
 	_, dbUpdate := tracer("order-service").Start(ctx2, "UPDATE orders SET status = 'return_initiated'",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("db.system", "postgresql"),
-			attribute.String("db.operation", "UPDATE"),
-			attribute.String("db.name", "orders_db"),
+			attribute.String("db.system.name", "postgresql"),
+			attribute.String("db.operation.name", "UPDATE"),
+			attribute.String("db.namespace", "orders_db"),
 		),
 	)
 	sleep(5, 15)
@@ -822,10 +836,12 @@ func returnRefundFlow(ctx context.Context) {
 		_, stripeRefund := tracer("payment-service").Start(ctx3, "POST https://api.stripe.com/v1/refunds",
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
-				attribute.String("http.method", "POST"),
-				attribute.String("http.url", "https://api.stripe.com/v1/refunds"),
-				attribute.String("peer.service", "stripe-api"),
-				attribute.Int("http.status_code", 200),
+				attribute.String("http.request.method", "POST"),
+				attribute.String("url.full", "https://api.stripe.com/v1/refunds"),
+				attribute.String("server.address", "api.stripe.com"),
+				attribute.Int("server.port", 443),
+				attribute.String("service.peer.name", "stripe-api"),
+				attribute.Int("http.response.status_code", 200),
 			),
 		)
 		sleep(80, 250)
@@ -848,9 +864,9 @@ func returnRefundFlow(ctx context.Context) {
 		_, dbRestock := tracer("inventory-service").Start(ctx3, "UPDATE inventory SET quantity = quantity + $1",
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
-				attribute.String("db.system", "postgresql"),
-				attribute.String("db.operation", "UPDATE"),
-				attribute.String("db.name", "inventory_db"),
+				attribute.String("db.system.name", "postgresql"),
+				attribute.String("db.operation.name", "UPDATE"),
+				attribute.String("db.namespace", "inventory_db"),
 			),
 		)
 		sleep(5, 15)
@@ -860,8 +876,8 @@ func returnRefundFlow(ctx context.Context) {
 		_, cacheDel := tracer("cache-service").Start(ctx3, "Redis DEL inventory-cache",
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
-				attribute.String("db.system", "redis"),
-				attribute.String("db.operation", "DEL"),
+				attribute.String("db.system.name", "redis"),
+				attribute.String("db.operation.name", "DEL"),
 			),
 		)
 		sleep(1, 3)
@@ -887,8 +903,8 @@ func returnRefundFlow(ctx context.Context) {
 	_, email := tracer("email-service").Start(ctx3, "SendEmail",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("peer.service", "sendgrid"),
+			attribute.String("http.request.method", "POST"),
+			attribute.String("service.peer.name", "sendgrid"),
 			attribute.String("email.template", "refund_confirmation"),
 		),
 	)
@@ -901,7 +917,7 @@ func returnRefundFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindProducer),
 		trace.WithAttributes(
 			attribute.String("messaging.system", "kafka"),
-			attribute.String("messaging.destination", "analytics.events"),
+			attribute.String("messaging.destination.name", "analytics.events"),
 			attribute.String("analytics.event_type", "order.refunded"),
 			attribute.String("order.id", orderID),
 			attribute.Float64("refund.amount", refundAmount),
@@ -916,8 +932,9 @@ func returnRefundFlow(ctx context.Context) {
 			trace.WithSpanKind(trace.SpanKindConsumer),
 			trace.WithAttributes(
 				attribute.String("messaging.system", "kafka"),
-				attribute.String("messaging.operation", "receive"),
-				attribute.String("messaging.destination", "analytics.events"),
+				attribute.String("messaging.operation.name", "receive"),
+				attribute.String("messaging.operation.type", "process"),
+				attribute.String("messaging.destination.name", "analytics.events"),
 				attribute.String("analytics.event_type", "order.refunded"),
 				attribute.String("order.id", orderID),
 			),
