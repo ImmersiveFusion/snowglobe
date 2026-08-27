@@ -80,6 +80,10 @@ conventions is to prefix with a reverse domain or an application name unique wit
 and it explicitly warns against extending an existing OTel namespace with a non-standard metric. So
 queue depth becomes `tracegen.messaging.queue.depth`, not `messaging.queue.depth`.
 
+The prefix keeps the old product name on purpose. A metric name is a wire contract:
+renaming it to `snowglobe.` would break every dashboard, alert and recording rule already
+keyed on it, for no gain a reader can see. Do not sweep it during a rename.
+
 Instrument names use dots. Do not pre-normalise to underscores: some backends preserve dots to the query
 surface and some translate them, and that is the backend's job, not the producer's.
 
