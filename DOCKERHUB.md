@@ -2,7 +2,7 @@
      (the description API rejects PATs). When you change this, re-paste it on Docker Hub. -->
 # Snowglobe
 
-**One container that emits realistic, topology-rich OpenTelemetry traces, logs and metrics, including AI agentic spans.** No microservices to deploy, no Docker Compose with 15 containers. A single 5.7 MB image simulates a full e-commerce platform: up to 28 services, dozens of pods that scale with the topology, 40 scenario flows, and 10 injectable failure modes, with full OTel GenAI semantic conventions for LLM/agent observability.
+**One container that emits realistic, topology-rich OpenTelemetry traces, logs and metrics, including AI agentic spans.** No microservices to deploy, no Docker Compose with 15 containers. A single 6.4 MB image simulates a full e-commerce platform: up to 28 services, dozens of pods that scale with the topology, 40 scenario flows, and 10 injectable failure modes, with full OTel GenAI semantic conventions for LLM/agent observability.
 
 Built for testing observability platforms, load-testing trace pipelines, and showcasing distributed-system visualizations, for both traditional APM and LLM observability.
 

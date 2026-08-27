@@ -9,10 +9,10 @@ labels: bug
 A clear description of the bug.
 
 **Command**
-The exact `tracegen` invocation (flags, env vars):
+The exact `snowglobe` invocation (flags, env vars):
 
 ```
-tracegen ...
+snowglobe ...
 ```
 
 **Expected vs. actual**

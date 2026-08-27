@@ -6,7 +6,7 @@
 
 One binary that generates a whole distributed system's telemetry: logs, traces and metrics from a 28-service topology with the shapes real systems actually make. Diamond dependencies, scatter-gather fan-out, sagas that compensate, timeouts that cascade. Point it at anything that speaks OTLP and watch it arrive.
 
-No Docker Compose. No microservices to deploy. No 6GB stack to babysit. One executable, or a 5.7 MB container.
+No Docker Compose. No microservices to deploy. No 6GB stack to babysit. One executable, or a 6.4 MB container.
 
 ```bash
 docker run --rm immersivefusion/snowglobe -insecure -endpoint host.docker.internal:4317

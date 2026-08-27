@@ -36,7 +36,7 @@ linters:
       - path: _test\.go
         linters:
           - gosec
-      # G404: tracegen emits SYNTHETIC telemetry; math/rand (weak PRNG) is the
+      # G404: Snowglobe emits SYNTHETIC telemetry; math/rand (weak PRNG) is the
       # whole point of the tool and is not security-sensitive.
       - linters: [gosec]
         text: "G404"
