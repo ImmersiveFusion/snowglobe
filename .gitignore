@@ -1,6 +1,14 @@
 # Build output
-tracegen.exe
+# Was `tracegen.exe`, which stopped matching the moment the binary was renamed to
+# snowglobe. A local `go build ./cmd/snowglobe` then drops a ~20MB untracked binary
+# in the repo root, one `git add -A` away from a public repo. Match on extension so
+# the next rename cannot reopen the hole.
+*.exe
 dist/
+
+# Runtime noise
+debug.log
+*.log
 
 # Test
 *.test
