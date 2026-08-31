@@ -4,7 +4,7 @@
 
 **A sealed world you can shake.**
 
-One binary that generates a whole distributed system's telemetry: logs, traces and metrics from a 28-service topology with the shapes real systems actually make. Diamond dependencies, scatter-gather fan-out, sagas that compensate, timeouts that cascade. Point it at anything that speaks OTLP and watch it arrive.
+One binary that generates a whole distributed system's telemetry: logs, traces and metrics from a topology of up to 28 services with the shapes real systems actually make. **The default (`-complexity normal`) runs 20 traditional services; `-complexity heavy` adds the 8 AI services for 28.** Diamond dependencies, scatter-gather fan-out, sagas that compensate, timeouts that cascade. Point it at anything that speaks OTLP and watch it arrive.
 
 No Docker Compose. No microservices to deploy. No 6GB stack to babysit. One executable, or a 6.4 MB container.
 
@@ -31,7 +31,7 @@ Every existing trace generator falls into one of two categories:
 
 And none of them generate **AI agentic traces**. The LLM observability market has no standalone tool that combines traditional APM with LLM observability. Every specialized LLM tool (Langfuse, LangSmith, Helicone, Arize, Traceloop, Portkey, Galileo) tracks token usage, model costs, and agent tool calls - but none of them provide traditional distributed tracing.
 
-This tool generates **topology-rich, failure-injectable traces from a single binary** - covering both traditional microservice flows AND AI agentic patterns with OTel GenAI semantic conventions. One binary proves that a platform can visualize both.
+This tool generates **topology-rich, failure-injectable traces from a single binary** - covering both traditional microservice flows AND AI agentic patterns with OTel GenAI semantic conventions. One binary proves that a platform can visualize both. **The AI services and their GenAI spans are in the `heavy` tier, so run `-complexity heavy` to get them; the default emits traditional traffic only.**
 
 ## Quick Start
 
