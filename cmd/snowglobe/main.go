@@ -259,7 +259,7 @@ func main() {
 	errors := flag.Int("errors", 0, "error rate 0-10 (0=none, 5=normal, 10=chaos)")
 	noConsumers := flag.Bool("no-consumers", false, "disable all async consumers (messages published but never consumed)")
 	insecureFlag := flag.Bool("insecure", false, "use plaintext gRPC (no TLS) for local backends")
-	noAIBackendsFlag := flag.Bool("no-ai-backends", false, "disable all LLM/AI backends (AI spans emit errors)")
+	noAIBackendsFlag := flag.Bool("no-ai-backends", false, "exclude all LLM/AI services and scenarios from the topology (thier spans are absent, not failing)")
 	aiOnlyFlag := flag.Bool("ai-only", false, "only run AI agentic scenarios")
 	complexityFlag := flag.String("complexity", "normal", "topology complexity: light, normal, heavy")
 	noLogsFlag := flag.Bool("no-logs", false, "disable OTel log record emission (traces only)")
