@@ -41,7 +41,7 @@ The image is multi-arch (`linux/amd64`, `linux/arm64`), distroless, and runs as 
 | `-errors` | `0` | Error rate 0-10 (0 = none, 5 = normal, 10 = chaos) |
 | `-complexity` | `normal` | Topology size: `light`, `normal`, `heavy` |
 | `-ai-only` | `false` | Only run AI agentic scenarios |
-| `-no-ai-backends` | `false` | Disable LLM/AI backends (AI spans emit errors) |
+| `-no-ai-backends` | `false` | Exclude LLM/AI services and scenarios from the topology |
 | `-no-consumers` | `false` | Publish to queues but never consume (backlog demo) |
 | `-no-logs` | `false` | Traces only, no OTel log records |
 
