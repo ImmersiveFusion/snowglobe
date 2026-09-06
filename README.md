@@ -277,7 +277,7 @@ Flags:
   -level int           Aggressiveness 1-10 (default 1)
   -errors int          Error rate 0-10 (default 0)
   -no-consumers        Disable all async consumers
-  -no-ai-backends      Disable LLM/AI backends (AI spans emit errors)
+  -no-ai-backends      Exclude LLM/AI services and scenarios from the topology
   -ai-only             Only run AI agentic scenarios
   -no-logs             Disable OTel log record emission (traces only)
   -no-metrics          Disable OTel metric emission
@@ -345,8 +345,8 @@ snowglobe -level 3 -no-consumers -insecure
 # AI scenarios only - great for LLM observability testing
 snowglobe -level 3 -ai-only -insecure
 
-# Simulate AI backend outage (LLM rate limits, timeouts)
-snowglobe -level 5 -no-ai-backends -errors 5 -insecure
+# Exclude AI services and scenarios from the heavy topology
+snowglobe -level 5 -complexity heavy -no-ai-backends -insecure
 
 # Chaos mode - maximum load and errors
 snowglobe -level 10 -errors 10 -insecure
