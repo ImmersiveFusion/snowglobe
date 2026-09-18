@@ -111,6 +111,9 @@ func newProvider(ctx context.Context, serviceName, endpoint, instanceID, hostNam
 			attribute.String("service.instance.id", instanceID),
 			attribute.String("host.name", hostName),
 		)),
+		// Sample everything, as before, but declare it (ot=th:0) so backends
+		// can tell a complete stream from a sampled one.
+		sdktrace.WithSampler(declaredFullSampler{}),
 	}
 	// Metrics are derived from the spans this provider produces rather than
 	// hand-instrumented at the ~200 scenario call sites. That keeps traces and
