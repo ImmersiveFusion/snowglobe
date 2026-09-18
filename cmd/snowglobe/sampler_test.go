@@ -20,7 +20,11 @@ func newDeclaredFullProvider() (*sdktrace.TracerProvider, *tracetest.SpanRecorde
 
 func TestDeclaredFullRootSpanCarriesTh0(t *testing.T) {
 	tp, _ := newDeclaredFullProvider()
-	defer tp.Shutdown(context.Background())
+	t.Cleanup(func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	})
 
 	_, span := tp.Tracer("t").Start(context.Background(), "root")
 	span.End()
@@ -32,11 +36,19 @@ func TestDeclaredFullRootSpanCarriesTh0(t *testing.T) {
 
 func TestDeclaredFullChildSpanCarriesTh0(t *testing.T) {
 	tp, _ := newDeclaredFullProvider()
-	defer tp.Shutdown(context.Background())
+	t.Cleanup(func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	})
 	// Snowglobe runs one provider per service instance, so a downstream hop
 	// starts its span from a different provider with the caller's context.
 	other, _ := newDeclaredFullProvider()
-	defer other.Shutdown(context.Background())
+	t.Cleanup(func() {
+		if err := other.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	})
 
 	ctx, root := tp.Tracer("t").Start(context.Background(), "root")
 	_, child := tp.Tracer("t").Start(ctx, "child")
@@ -57,7 +69,11 @@ func TestDeclaredFullChildSpanCarriesTh0(t *testing.T) {
 
 func TestDeclaredFullKeepsParentTracestateWithOtFirst(t *testing.T) {
 	tp, _ := newDeclaredFullProvider()
-	defer tp.Shutdown(context.Background())
+	t.Cleanup(func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	})
 
 	ts, err := trace.ParseTraceState("foo=bar")
 	if err != nil {
@@ -95,7 +111,11 @@ func TestWithTh0(t *testing.T) {
 
 func TestDeclaredFullRecordsAndSamplesEverySpan(t *testing.T) {
 	tp, rec := newDeclaredFullProvider()
-	defer tp.Shutdown(context.Background())
+	t.Cleanup(func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			t.Errorf("shutdown: %v", err)
+		}
+	})
 
 	const n = 25
 	tr := tp.Tracer("t")
