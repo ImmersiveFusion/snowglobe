@@ -40,6 +40,7 @@ func ragSearchFlow(ctx context.Context) {
 			attribute.Int("http.response.status_code", 200),
 			attribute.String("search.query", query),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/search/ai")...),
 	)
 	defer gateway.End()
 	sleep(3, 10)
@@ -209,6 +210,7 @@ func aiChatbotFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/chat"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/chat")...),
 	)
 	defer gateway.End()
 	sleep(3, 8)
@@ -370,6 +372,7 @@ func contentModerationFlow(ctx context.Context) {
 			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/reviews"),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/reviews")...),
 	)
 	defer gateway.End()
 	sleep(3, 8)
@@ -542,6 +545,7 @@ func multiStepAgentFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/agent/task"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/agent/task")...),
 	)
 	defer gateway.End()
 	sleep(3, 8)
@@ -767,6 +771,7 @@ func returnRefundFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/returns"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/returns")...),
 	)
 	defer gateway.End()
 	sleep(5, 15)
