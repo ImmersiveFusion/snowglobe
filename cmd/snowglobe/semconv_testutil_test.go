@@ -22,8 +22,10 @@ import (
 // The tests drive every scenario flow through the real tracer() indirection (tracerPool) into a
 // SpanRecorder, so they assert what the generator actually emits, not what the source text says.
 
-var flowRe = regexp.MustCompile(`\{"[^"]+", (\w+Flow),`)
-var tracerRe = regexp.MustCompile(`tracer\("([\w-]+)"\)`)
+var (
+	flowRe   = regexp.MustCompile(`\{"[^"]+", (\w+Flow),`)
+	tracerRe = regexp.MustCompile(`tracer\("([\w-]+)"\)`)
+)
 
 func allFlows() []func(context.Context) {
 	return []func(context.Context){
