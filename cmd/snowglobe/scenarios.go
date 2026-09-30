@@ -37,6 +37,7 @@ func createOrderFlow(ctx context.Context) {
 			attribute.String("user_agent.original", "Mozilla/5.0"),
 			attribute.String("network.peer.address", randomIP()),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/orders")...),
 	)
 	defer gateway.End()
 	emitLog(ctx, "api-gateway", logapi.SeverityInfo, "Incoming request POST /api/v2/orders",
@@ -255,6 +256,7 @@ func searchAndBrowseFlow(ctx context.Context) {
 			attribute.Int("http.response.status_code", 200),
 			attribute.String("search.query", randomSearchTerm()),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/search")...),
 	)
 	defer gateway.End()
 	sleep(5, 15)
@@ -333,6 +335,7 @@ func userLoginFlow(ctx context.Context) {
 			attribute.String("http.request.method", "POST"),
 			attribute.String("http.route", "/api/v2/auth/login"),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/auth/login")...),
 	)
 	defer func() {
 		if isFailure {
@@ -414,6 +417,7 @@ func failedPaymentFlow(ctx context.Context) {
 			attribute.Int("http.response.status_code", 402),
 			attribute.String("network.peer.address", randomIP()),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/orders")...),
 	)
 	exc := randomException(paymentExceptions)
 	recordException(ctx, "api-gateway", gateway, exc.excType, exc.message, exc.stacktrace)
@@ -510,6 +514,7 @@ func bulkNotificationFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/admin/digest"),
 			attribute.Int("http.response.status_code", 202),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/admin/digest")...),
 	)
 	defer gateway.End()
 	sleep(3, 10)
@@ -605,6 +610,7 @@ func healthCheckFlow(ctx context.Context) {
 			attribute.String("http.route", "/healthz"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/healthz")...),
 	)
 	defer gateway.End()
 	sleep(1, 5)
@@ -668,6 +674,7 @@ func inventorySyncFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/admin/inventory/sync"),
 			attribute.Int("http.response.status_code", 202),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/admin/inventory/sync")...),
 	)
 	defer gateway.End()
 	sleep(3, 10)
@@ -870,6 +877,7 @@ func stripeWebhookFlow(ctx context.Context) {
 			attribute.String("webhook.id", fmt.Sprintf("evt_%016d", rand.Int63())),
 			attribute.String("service.peer.name", "stripe-api"),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/webhooks/stripe")...),
 	)
 	defer webhook.End()
 	sleep(5, 15)
@@ -992,6 +1000,7 @@ func recommendationFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/recommendations"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/recommendations")...),
 	)
 	defer gateway.End()
 	sleep(3, 10)
@@ -1118,6 +1127,7 @@ func addToCartFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/cart/items"),
 			attribute.Int("http.response.status_code", 200),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/cart/items")...),
 	)
 	defer gateway.End()
 	sleep(3, 10)
@@ -1263,6 +1273,7 @@ func fullCheckoutFlow(ctx context.Context) {
 			attribute.Int("http.response.status_code", 200),
 			attribute.String("network.peer.address", randomIP()),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/checkout")...),
 	)
 	defer gateway.End()
 	emitLog(ctx, "api-gateway", logapi.SeverityInfo, "Checkout initiated",
@@ -1593,6 +1604,7 @@ func shippingUpdateFlow(ctx context.Context) {
 			attribute.String("shipping.tracking_number", fmt.Sprintf("1Z%09d", rand.Intn(999999999))),
 			attribute.String("shipping.status", shippingStatus),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/webhooks/carrier")...),
 	)
 	defer webhook.End()
 	sleep(5, 15)
@@ -1739,6 +1751,7 @@ func sagaCompensationFlow(ctx context.Context) {
 			attribute.String("http.route", "/api/v2/checkout"),
 			attribute.Int("http.response.status_code", 402),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/checkout")...),
 	)
 	defer gateway.End()
 	sleep(5, 15)
@@ -2014,6 +2027,7 @@ func timeoutCascadeFlow(ctx context.Context) {
 			attribute.Int("http.response.status_code", 504),
 			attribute.Int("retry.attempt", 1),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/search")...),
 	)
 	sleep(5, 10)
 
@@ -2051,6 +2065,7 @@ func timeoutCascadeFlow(ctx context.Context) {
 			attribute.Bool("circuit_breaker.open", true),
 			attribute.String("circuit_breaker.fallback", "stale_cache"),
 		),
+		trace.WithAttributes(httpServerAttrs(ctx, "/api/v2/search")...),
 	)
 	sleep(3, 8)
 

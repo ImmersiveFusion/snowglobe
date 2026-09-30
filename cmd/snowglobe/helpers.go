@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	logapi "go.opentelemetry.io/otel/log"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -220,6 +221,54 @@ func urlHost(raw string) string {
 		return u.Hostname()
 	}
 	return raw
+}
+
+// httpServerAttrs returns the attributes an HTTP SERVER span must carry beyond what the caller sets:
+// url.scheme and url.path (Required by the OpenTelemetry HTTP server span table) and, when the span is a
+// child of an HTTP CLIENT span, that client's server.address and server.port. The convention says these
+// "are intended, whenever possible, to be the same on the client and server sides", and asks a server to
+// do the best effort from the request it received, so a server reached through a named host reports that
+// host (simulated here: the front door is a Host header the generator does not really have).
+//
+// url.path is the path of the request the server received. When the parent client says what it requested
+// (url.full), that is the path; the fallback argument is used only for a server with no HTTP client parent
+// (a webhook arriving from outside). A third-party server span is never emitted from here.
+func httpServerAttrs(parent context.Context, fallbackPath string) []attribute.KeyValue {
+	path := fallbackPath
+	var extra []attribute.KeyValue
+	if p, ok := trace.SpanFromContext(parent).(sdktrace.ReadOnlySpan); ok && p.SpanKind() == trace.SpanKindClient {
+		var isHTTP bool
+		var addr, port *attribute.KeyValue
+		var full string
+		for _, a := range p.Attributes() {
+			a := a
+			switch string(a.Key) {
+			case "http.request.method":
+				isHTTP = true
+			case "server.address":
+				addr = &a
+			case "server.port":
+				port = &a
+			case "url.full":
+				full = a.Value.AsString()
+			}
+		}
+		if isHTTP {
+			if u, err := url.Parse(full); err == nil && u.Path != "" {
+				path = u.EscapedPath()
+			}
+			if addr != nil {
+				extra = append(extra, *addr)
+				if port != nil {
+					extra = append(extra, *port)
+				}
+			}
+		}
+	}
+	return append([]attribute.KeyValue{
+		attribute.String("url.scheme", "https"),
+		attribute.String("url.path", path),
+	}, extra...)
 }
 
 type modelInfo struct {
