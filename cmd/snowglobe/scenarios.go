@@ -439,6 +439,7 @@ func failedPaymentFlow(ctx context.Context) {
 		trace.WithAttributes(
 			attribute.String("db.system.name", "postgresql"),
 			attribute.String("db.operation.name", "INSERT"),
+			attribute.String("db.namespace", "orders_db"),
 		),
 	)
 	sleep(5, 15)
@@ -467,6 +468,8 @@ func failedPaymentFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("http.request.method", "POST"),
+			attribute.String("server.address", "api.stripe.com"),
+			attribute.Int("server.port", 443),
 			attribute.String("service.peer.name", "stripe-api"),
 			attribute.Int("http.response.status_code", 402),
 			attribute.String("error.type", "card_declined"),
@@ -535,6 +538,7 @@ func bulkNotificationFlow(ctx context.Context) {
 		trace.WithAttributes(
 			attribute.String("db.system.name", "postgresql"),
 			attribute.String("db.operation.name", "SELECT"),
+			attribute.String("db.namespace", "orders_db"),
 			attribute.String("db.query.text", "SELECT * FROM notifications WHERE status = 'pending' LIMIT 100"),
 		),
 	)
@@ -1059,6 +1063,7 @@ func recommendationFlow(ctx context.Context) {
 			trace.WithAttributes(
 				attribute.String("db.system.name", "postgresql"),
 				attribute.String("db.operation.name", "SELECT"),
+				attribute.String("db.namespace", "inventory_db"),
 				attribute.Int("batch.size", 20+rand.Intn(30)),
 			),
 		)
@@ -1690,6 +1695,8 @@ func shippingUpdateFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("http.request.method", "POST"),
+			attribute.String("server.address", "api.sendgrid.com"),
+			attribute.Int("server.port", 443),
 			attribute.String("service.peer.name", "sendgrid"),
 			attribute.String("email.template", "shipping_update"),
 		),
@@ -1833,6 +1840,8 @@ func sagaCompensationFlow(ctx context.Context) {
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
 				attribute.String("http.request.method", "POST"),
+				attribute.String("server.address", "api.stripe.com"),
+				attribute.Int("server.port", 443),
 				attribute.String("service.peer.name", "stripe-api"),
 				attribute.Int("http.response.status_code", 402),
 				attribute.Int("retry.attempt", attempt),
@@ -1955,6 +1964,9 @@ func sagaCompensationFlow(ctx context.Context) {
 		_, email := tracer("email-service").Start(ctx4, "SendEmail",
 			trace.WithSpanKind(trace.SpanKindClient),
 			trace.WithAttributes(
+				attribute.String("http.request.method", "POST"),
+				attribute.String("server.address", "api.sendgrid.com"),
+				attribute.Int("server.port", 443),
 				attribute.String("service.peer.name", "sendgrid"),
 				attribute.String("email.template", "order_canceled"),
 			),

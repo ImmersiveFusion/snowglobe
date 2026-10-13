@@ -909,6 +909,8 @@ func returnRefundFlow(ctx context.Context) {
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("http.request.method", "POST"),
+			attribute.String("server.address", "api.sendgrid.com"),
+			attribute.Int("server.port", 443),
 			attribute.String("service.peer.name", "sendgrid"),
 			attribute.String("email.template", "refund_confirmation"),
 		),
